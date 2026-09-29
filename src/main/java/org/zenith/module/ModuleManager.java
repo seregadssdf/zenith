@@ -179,6 +179,7 @@ public final class ModuleManager implements ClientProvider {
       this.on23(Bot.bot);
       this.on23(AutoWarden.autoWarden);
       this.on23(WarpFarm.warpFarm);
+      this.on23(AutoSell.autoSell);
    }
 
    public void on23(Module var1) {

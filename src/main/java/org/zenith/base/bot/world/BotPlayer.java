@@ -64,6 +64,10 @@ public class BotPlayer extends PlayerEntity {
    public boolean riding;
    public boolean falling;
    private boolean loaded;
+   /** Поворот на начало тика бота: вид бота интерполирует от него, иначе повороты модулей идут рывками по 20 Гц. */
+   public float renderYawStart;
+   public float renderPitchStart;
+   public boolean renderRotationCaptured;
 
    public BotPlayer(BotWorld var1, BotPlayHandler var2, boolean var3, boolean var4) {
       super(var1, var2.getProfile());
@@ -103,11 +107,31 @@ public class BotPlayer extends PlayerEntity {
    }
 
    public float getPitch(float tickDelta) {
-      return this.getPitch();
+      return this.renderRotationCaptured ? MathHelper.lerp(tickDelta, this.renderPitchStart, this.getPitch()) : this.getPitch();
    }
 
    public float getYaw(float tickDelta) {
-      return this.hasVehicle() ? super.getYaw(tickDelta) : this.getYaw();
+      if (this.hasVehicle()) {
+         return super.getYaw(tickDelta);
+      }
+
+      return this.renderRotationCaptured ? MathHelper.lerp(tickDelta, this.renderYawStart, this.getYaw()) : this.getYaw();
+   }
+
+   public void captureRenderRotation() {
+      this.renderYawStart = this.getYaw();
+      this.renderPitchStart = this.getPitch();
+      this.renderRotationCaptured = true;
+   }
+
+   /** Мышь из окна управления, как в ванилле, применяется сразу: стартовая точка интерполяции сдвигается вместе с углом. */
+   @Override
+   public void changeLookDirection(double cursorDeltaX, double cursorDeltaY) {
+      float yaw = this.getYaw();
+      float pitch = this.getPitch();
+      super.changeLookDirection(cursorDeltaX, cursorDeltaY);
+      this.renderYawStart += this.getYaw() - yaw;
+      this.renderPitchStart = MathHelper.clamp(this.renderPitchStart + (this.getPitch() - pitch), -90.0F, 90.0F);
    }
 
    public void tick() {
