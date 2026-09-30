@@ -66,8 +66,8 @@ public final class AutoSellEngine {
    private static final int AH_CONFIRM_SLOT = 0;
    /** Центральная клетка меню /ah sellgui — туда кладём меч, если шифт-клик его не перенёс. */
    private static final int SELL_ITEM_SLOT = 13;
-   /** Кнопка подтверждения продажи, если лаймового красителя в меню не нашлось. */
-   private static final int SELL_CONFIRM_FALLBACK_SLOT = 15;
+   /** Кнопка подтверждения продажи (15-й по счёту слот), если лаймового красителя не нашлось: серверный ресурспак его подменяет. */
+   private static final int SELL_CONFIRM_FALLBACK_SLOT = 14;
    private static final int RESULT_SLOT = 0;
    private static final int GRID2_FIRST = 1;
    private static final int GRID2_LAST = 4;
