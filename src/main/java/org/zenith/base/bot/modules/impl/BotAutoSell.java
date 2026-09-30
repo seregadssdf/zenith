@@ -14,6 +14,7 @@ import org.zenith.base.bot.modules.api.BotModule;
 import org.zenith.base.bot.net.BotPlayHandler;
 import org.zenith.base.bot.world.BotInteractionManager;
 import org.zenith.base.bot.world.BotPlayer;
+import org.zenith.event.BotChatEvent;
 import org.zenith.event.BotTickEvent;
 import org.zenith.module.Category;
 import org.zenith.module.ModuleInfo;
@@ -44,6 +45,13 @@ public final class BotAutoSell extends BotModule {
    public void onBotUpdate(BotTickEvent event) {
       if (event.getPlayer() != null && this.bot().isJoined() && this.handler() != null) {
          this.engine.tick();
+      }
+   }
+
+   @EventTarget
+   public void onBotChat(BotChatEvent event) {
+      if (event.InventorySetting() != null) {
+         this.engine.onChat(event.InventorySetting().getString());
       }
    }
 

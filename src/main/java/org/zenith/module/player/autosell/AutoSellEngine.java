@@ -368,7 +368,7 @@ public final class AutoSellEngine {
          }
          case 2 -> {
             if (!containerOpen(player)) {
-               this.fail(player, "меню продажи закрылось", now);
+               this.sellFull(player, "меню продажи закрылось", now);
                return;
             }
 
@@ -388,7 +388,7 @@ public final class AutoSellEngine {
          }
          case 3 -> {
             if (!containerOpen(player)) {
-               this.fail(player, "меню продажи закрылось", now);
+               this.sellFull(player, "меню продажи закрылось", now);
                return;
             }
 
@@ -400,7 +400,7 @@ public final class AutoSellEngine {
             // Шифт-клик меню не принял — переносим меч курсором, как руками.
             Slot sword = findPlayerSlot(player, handler, this::isSword, player.getInventory().getSelectedSlot());
             if (sword == null || !handler.getCursorStack().isEmpty()) {
-               this.fail(player, "не удалось положить меч в меню продажи", now);
+               this.sellFull(player, "не удалось положить меч в меню продажи", now);
                return;
             }
 
@@ -410,7 +410,7 @@ public final class AutoSellEngine {
          case 4 -> {
             Slot target = containerOpen(player) && this.isSword(handler.getCursorStack()) ? this.sellTargetSlot(player, handler) : null;
             if (target == null) {
-               this.fail(player, "не удалось положить меч в меню продажи", now);
+               this.sellFull(player, "не удалось положить меч в меню продажи", now);
                return;
             }
 
@@ -421,12 +421,12 @@ public final class AutoSellEngine {
             if (containerOpen(player) && this.findContainerSlot(player, handler, this::isSword) != null && handler.getCursorStack().isEmpty()) {
                this.advance(6, now, SERVER_TIMEOUT_MS);
             } else {
-               this.fail(player, "меню продажи не принимает меч", now);
+               this.sellFull(player, "меню продажи не принимает меч", now);
             }
          }
          case 6 -> {
             if (!containerOpen(player)) {
-               this.fail(player, "меню продажи закрылось", now);
+               this.sellFull(player, "меню продажи закрылось", now);
                return;
             }
 
@@ -452,7 +452,7 @@ public final class AutoSellEngine {
                   this.onSold();
                   this.advance(8, now, SERVER_TIMEOUT_MS);
                } else {
-                  this.fail(player, "меч вернулся в инвентарь — продажа не прошла", now);
+                  this.sellFull(player, "меч вернулся в инвентарь — продажа не прошла", now);
                }
 
                return;
@@ -460,7 +460,7 @@ public final class AutoSellEngine {
 
             this.settleSince = 0L;
             if (now > this.deadline) {
-               this.fail(player, "продажа не подтвердилась", now);
+               this.sellFull(player, "продажа не подтвердилась", now);
             }
          }
          case 8 -> {
@@ -533,8 +533,9 @@ public final class AutoSellEngine {
                return;
             }
 
-            // Предпоследний слот: 53-й по счёту в двойном сундуке.
-            this.host.clickSlot(size - 2, 0, SlotActionType.PICKUP);
+            // Кнопка перевыставления — часы; если их нет, предпоследний слот (53-й по счёту в двойном сундуке).
+            Slot clock = this.findContainerSlot(player, handler, stack -> stack.isOf(Items.CLOCK));
+            this.host.clickSlot(clock != null ? clock.id : size - 2, 0, SlotActionType.PICKUP);
             this.advance(3, now, SERVER_TIMEOUT_MS);
          }
          case 3 -> {
@@ -1165,6 +1166,40 @@ public final class AutoSellEngine {
 
    private void succeed() {
       this.failures = 0;
+   }
+
+   /** Сообщение сервера из чата: «У Вас купили» освобождает слот на аукционе — снимаем паузу продажи. */
+   public void onChat(String text) {
+      if (this.phase == Phase.STOPPED || !AutoSellText.plain(text).toLowerCase(java.util.Locale.ROOT).contains("у вас купили")) {
+         return;
+      }
+
+      boolean paused = this.host.now() < this.sellRetryAt;
+      this.sellRetryAt = 0L;
+      this.sellFailures = 0;
+      this.debug("меч купили — продаю дальше");
+      // Бот ждёт в осмотре (пауза или бэкофф) — переходим к продаже сразу, текущие действия с меню не рвём.
+      if (paused && this.phase == Phase.INSPECT && this.step == 0) {
+         long now = this.host.now();
+         this.nextActionAt = Math.min(this.nextActionAt, now + this.randomMs(ACTION_MIN_MS, ACTION_MAX_MS));
+      }
+   }
+
+   /** Меню продажи не приняло меч (лоты заняты): ставим продажу на паузу и сразу идём перевыставлять. */
+   private void sellFull(PlayerEntity player, String reason, long now) {
+      this.sellFailures = 0;
+      this.sellRetryAt = now + SELL_RETRY_MS;
+      this.relistPending = true;
+      this.status(reason + " — лоты заняты, перевыставляю; продажа продолжится после «У Вас купили»");
+      this.aim.cancel();
+      if (this.needsCleanup(player)) {
+         this.host.closeContainer();
+      }
+
+      this.phase = Phase.INSPECT;
+      this.step = 0;
+      this.attempts = 0;
+      this.delay(now);
    }
 
    private void fail(PlayerEntity player, String reason, long now) {

@@ -12,6 +12,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.world.World;
 import org.zenith.event.EventTick;
+import org.zenith.event.GameMessageEvent;
 import org.zenith.module.Category;
 import org.zenith.module.Module;
 import org.zenith.module.ModuleInfo;
@@ -75,6 +76,13 @@ public final class AutoSell extends Module implements AutoSellSettings {
    public void onUpdate(EventTick event) {
       if (minecraftClient3.player != null && minecraftClient3.world != null && minecraftClient3.interactionManager != null) {
          this.engine.tick();
+      }
+   }
+
+   @EventTarget
+   public void onGameMessage(GameMessageEvent event) {
+      if (event.InventorySetting() != null) {
+         this.engine.onChat(event.InventorySetting().getString());
       }
    }
 
