@@ -427,6 +427,7 @@ public final class BotPlayHandler extends BotCommonHandler implements ClientPlay
             botworld.runQueuedChunkUpdates();
             botworld.getChunkManager().getLightingProvider().doLightUpdates();
             botinteractionmanager.tick();
+            botplayer.captureRenderRotation();
             this.client.onBotUpdate(botworld, botplayer);
             botworld.tick(() -> true);
             botworld.tickEntities();
@@ -490,6 +491,7 @@ public final class BotPlayHandler extends BotCommonHandler implements ClientPlay
       } else {
          if (!botplayer.hasVehicle()) {
             setPosition(packet.change(), packet.relatives(), botplayer, false);
+            botplayer.captureRenderRotation();
          }
 
          this.sendPacket(new TeleportConfirmC2SPacket(packet.teleportId()));
@@ -531,6 +533,7 @@ public final class BotPlayHandler extends BotCommonHandler implements ClientPlay
          botplayer.setYaw(rotated.yaw());
          botplayer.setPitch(rotated.pitch());
          botplayer.updateLastAngles();
+         botplayer.captureRenderRotation();
          this.sendPacket(new LookAndOnGround(botplayer.getYaw(), botplayer.getPitch(), false, false));
       } else {
          this.sendPacket(new LookAndOnGround(packet.yaw(), packet.pitch(), false, false));
