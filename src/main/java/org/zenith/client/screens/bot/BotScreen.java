@@ -667,6 +667,74 @@ public class BotScreen extends CustomScreen {
          );
          var1.drawRoundedRect(var3, var4, 232.0F, 130.5F, headerRadius, new ArgbColor(10, 10, 14, 150).SprintStateEvent(var5));
       }
+
+      this.renderPreviewContainer(var1, var2, var3, var4, var5);
+   }
+
+   /** Меню, которое сервер открыл боту (аукцион, магазин, верстак), поверх превью — только слоты самого меню. */
+   public void renderPreviewContainer(HudDrawContext var1, BotClient var2, float var3, float var4, float var5) {
+      BotPlayer botplayer = var2.getPlayer();
+      org.zenith.base.bot.net.BotPlayHandler botplayhandler = var2.getPlayHandler();
+      if (botplayer == null || botplayhandler == null || !botplayhandler.hasOpenScreen() || var5 < 0.05F) {
+         return;
+      }
+
+      net.minecraft.screen.ScreenHandler screenhandler = botplayer.currentScreenHandler;
+      java.util.List<net.minecraft.screen.slot.Slot> slots = new java.util.ArrayList<>();
+      int minX = Integer.MAX_VALUE;
+      int minY = Integer.MAX_VALUE;
+      int maxX = Integer.MIN_VALUE;
+      int maxY = Integer.MIN_VALUE;
+      for (net.minecraft.screen.slot.Slot slot : screenhandler.slots) {
+         if (slot.inventory == botplayer.getInventory()) {
+            continue;
+         }
+
+         slots.add(slot);
+         minX = Math.min(minX, slot.x);
+         minY = Math.min(minY, slot.y);
+         maxX = Math.max(maxX, slot.x);
+         maxY = Math.max(maxY, slot.y);
+      }
+
+      if (slots.isEmpty()) {
+         return;
+      }
+
+      Text title = botplayhandler.getCurrentScreenTitle();
+      int contentWidth = maxX - minX + 18;
+      int contentHeight = maxY - minY + 18;
+      int panelWidth = Math.max(contentWidth, title == null ? 0 : Math.min(200, minecraftClient3.textRenderer.getWidth(title))) + 8;
+      int panelHeight = contentHeight + 16;
+      float scale = Math.min(1.0F, Math.min((232.0F - 8.0F) / panelWidth, (130.5F - 8.0F) / panelHeight));
+      float left = var3 + (232.0F - panelWidth * scale) / 2.0F;
+      float top = var4 + (130.5F - panelHeight * scale) / 2.0F;
+      int alpha = (int)(255.0F * Math.min(1.0F, var5)) << 24;
+      var1.draw();
+      var1.getMatrices().pushMatrix();
+      var1.getMatrices().translate(left, top);
+      var1.getMatrices().scale(scale, scale);
+      var1.fill(0, 0, panelWidth, panelHeight, alpha | 0x00C6C6C6);
+      if (title != null) {
+         var1.drawText(minecraftClient3.textRenderer, title, 4, 4, alpha | 0x00404040, false);
+      }
+
+      int originX = 4 - minX;
+      int originY = 14 - minY;
+      for (net.minecraft.screen.slot.Slot slot : slots) {
+         int x = originX + slot.x;
+         int y = originY + slot.y;
+         var1.fill(x - 1, y - 1, x + 17, y + 17, alpha | 0x008B8B8B);
+         var1.fill(x, y, x + 16, y + 16, alpha | 0x00555555);
+         net.minecraft.item.ItemStack itemstack = slot.getStack();
+         if (!itemstack.isEmpty()) {
+            var1.drawItemWithoutEntity(itemstack, x, y);
+            var1.drawStackOverlay(minecraftClient3.textRenderer, itemstack, x, y);
+         }
+      }
+
+      var1.getMatrices().popMatrix();
+      var1.draw();
    }
 
    public void closePreview() {
